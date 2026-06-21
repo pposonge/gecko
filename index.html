@@ -38,9 +38,14 @@
                     문의사항 : 당근 커뮤니티 - 모임 - 대구 크레스티드게코 집사 모임 - CHAKAN
                 </p>
             </div>
-            <!-- 실시간 시스템 안정 상태 표시 -->
-            <div id="storageStatus" class="text-xs px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
-                로컬 저장소 활성화
+            <!-- 실시간 시스템 및 동기화 상태 표시 -->
+            <div class="flex items-center gap-2">
+                <button onclick="openSyncModal()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-sm">
+                    🔄 기기간 동기화 / 백업 설정
+                </button>
+                <div id="storageStatus" class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-medium">
+                    로컬 모드 가동 중
+                </div>
             </div>
         </header>
 
@@ -102,12 +107,10 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">교배 진행일</label>
-                        <!-- 수동 입력 편의를 위해 text 타입으로 변경 및 자리수 제한 자동완성 안내 추가 -->
                         <input type="text" id="mateDate" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="예: 20260611 또는 2026-06-11" required>
                     </div>
                     <div class="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100">
                         <label class="block text-[11px] font-bold text-emerald-800 mb-1">산란 완료일 (추후 선택 가능)</label>
-                        <!-- 수동 입력 편의를 위해 text 타입으로 변경 및 자리수 제한 자동완성 안내 추가 -->
                         <input type="text" id="layDate" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition" placeholder="예: 20260611 또는 2026-06-11">
                         <p class="text-[10px] text-emerald-600 mt-1">※ 산란 전이라면 비워두세요.</p>
                     </div>
@@ -172,7 +175,6 @@
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">정렬 조건:</span>
                             <select id="sortSelector" onchange="handleSortChange()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                                <!-- 산란일순(최근순)을 기본 선택 및 최상단으로 설정 -->
                                 <option value="layDate" selected>산란일순 (최근순)</option>
                                 <option value="created">최근 등록순</option>
                                 <option value="maleSort">수컷 이름순 (A-Z)</option>
@@ -212,6 +214,64 @@
         </div>
     </div>
 
+    <!-- [신규] 동기화 및 데이터 백업 관리 모달 -->
+    <div id="syncModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-slate-900">🔄 기기간 동기화 및 백업 설정</h3>
+                <button onclick="closeSyncModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+            
+            <div class="space-y-6 text-xs text-slate-600">
+                <!-- 옵션 1: 텍스트 간편 백업 -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <h4 class="font-bold text-slate-800 text-sm mb-1">방법 ①. 간편 텍스트 내보내기/가져오기</h4>
+                    <p class="mb-3 text-slate-500">인터넷 가입 없이 현재 데이터를 복사해 카카오톡 등으로 다른 기기에 전달합니다.</p>
+                    <div class="flex gap-2">
+                        <button onclick="exportDataToClipboard()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition cursor-pointer">
+                            📋 데이터 전체 복사하기
+                        </button>
+                        <button onclick="importDataFromInput()" class="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition cursor-pointer">
+                            📥 붙여넣어 가져오기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 옵션 2: 실시간 클라우드 동기화 (Firestore) -->
+                <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-200">
+                    <h4 class="font-bold text-blue-900 text-sm mb-1">방법 ②. 실시간 클라우드 동기화 (강력 추천)</h4>
+                    <p class="mb-3 text-blue-700">나만의 동기화 코드를 정해 실시간 연동을 구성합니다. (동시 입력 및 확인 가능)</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">1. 동기화 그룹 코드 설정 (PC와 휴대폰 동일 입력)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="syncCodeInput" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white" placeholder="예: chakan_gecko">
+                                <button onclick="saveSyncCode()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition cursor-pointer">
+                                    설정 적용
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-3 rounded-lg border border-blue-100">
+                            <label class="block font-semibold text-slate-700 mb-1">2. 나만의 무료 Firebase 설정 붙여넣기</label>
+                            <textarea id="firebaseConfigInput" rows="5" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono text-[10px]" placeholder='{ "apiKey": "...", "authDomain": "...", ... }'></textarea>
+                            <button onclick="saveFirebaseConfig()" class="w-full mt-2 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg transition cursor-pointer">
+                                Firebase 연결 저장
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-[10px] text-blue-600 bg-blue-100/50 p-2.5 rounded-lg border border-blue-200 leading-relaxed">
+                        💡 **초간단 세팅 안내**: <br>
+                        1. 구글에 [Firebase Console] 검색 후 무료 가동 및 새 프로젝트 생성<br>
+                        2. 웹 앱(</>)을 추가한 후 생성되는 **firebaseConfig { ... }** 코드의 괄호 안 내용만 그대로 복사해 위 창에 붙여넣고 저장하면 완벽 연동됩니다. (Firestore Database 활성화 필수)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 브라우저 Confirm 창을 대체하는 인앱 모달 -->
     <div id="confirmModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-100 transform transition-all scale-100">
@@ -233,35 +293,144 @@
         <span id="toastMsg">작업이 처리되었습니다.</span>
     </div>
 
-    <script>
-        // 에러 실시간 예외 감지 장치
-        window.addEventListener('error', function(e) {
-            const consoleBox = document.getElementById('errorConsole');
-            const messageEl = document.getElementById('errorMessage');
-            if (consoleBox && messageEl) {
-                consoleBox.classList.remove('hidden');
-                messageEl.innerText = `${e.message} (발생 위치: ${e.filename}:${e.lineno})`;
-            }
-        });
+    <!-- Firebase 모듈 CDN을 활용한 안정적인 클라우드 동기화 스크립트 모듈 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 기본 안전 데이터 샘플 (엑셀 기반 최근 데이터)
+        window.db = null;
+        window.auth = null;
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'gecko-clutch-tracker';
+        window.syncCode = '';
+
+        // Firebase 연동 활성화 함수
+        window.enableFirebaseSync = async function(config, code) {
+            try {
+                window.syncCode = code.trim();
+                const app = initializeApp(config);
+                window.auth = getAuth(app);
+                window.db = getFirestore(app);
+
+                // RULE 3 - Auth Before Queries
+                let user;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    user = (await signInWithCustomToken(window.auth, __initial_auth_token)).user;
+                } else {
+                    user = (await signInAnonymously(window.auth)).user;
+                }
+
+                if (!user) return;
+
+                document.getElementById('storageStatus').innerText = `동기화 완료 (${window.syncCode})`;
+                document.getElementById('storageStatus').className = "text-xs px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg font-medium";
+
+                // 실시간 동기화 리스너 개시 (RULE 1 & 2 준수: 단일 컬렉션 로드 후 JS 메모리 단에서 필터링)
+                const colRef = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'geckoEggs');
+                
+                onSnapshot(colRef, (snapshot) => {
+                    const fetched = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        // 해당 동기화 그룹 코드와 같은 개체만 메모리상에서 필터링
+                        if (data.syncCode === window.syncCode) {
+                            fetched.push({ id: doc.id, ...data });
+                        }
+                    });
+
+                    // 병합 처리 (클라우드 데이터 우선 동기화)
+                    if (fetched.length > 0) {
+                        window.eggList = fetched;
+                        localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
+                        window.renderTable();
+                    }
+                }, (error) => {
+                    console.error("Firestore Error: ", error);
+                });
+
+                // 기존 로컬 데이터를 클라우드로 업로드 병합 처리
+                await syncLocalDataToCloud();
+                window.showToast("실시간 클라우드 동기화가 활성화되었습니다.");
+
+            } catch (e) {
+                console.error("Firebase Sync Fail: ", e);
+                window.showToast("⚠️ Firebase 연결 정보가 올바르지 않거나 Firestore가 미활성 상태입니다.");
+            }
+        };
+
+        // 로컬 데이터를 클라우드로 자동 업로드 전송
+        async function syncLocalDataToCloud() {
+            if (!window.db || !window.syncCode) return;
+            const batchPromises = window.eggList.map(egg => {
+                const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'geckoEggs', String(egg.id));
+                return setDoc(docRef, {
+                    ...egg,
+                    syncCode: window.syncCode
+                });
+            });
+            await Promise.all(batchPromises);
+        }
+
+        // 새 항목 추가/수정 시 클라우드 동기화 연동
+        window.uploadEggToCloud = async function(egg) {
+            if (!window.db || !window.syncCode) return;
+            try {
+                const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'geckoEggs', String(egg.id));
+                await setDoc(docRef, {
+                    ...egg,
+                    syncCode: window.syncCode
+                });
+            } catch (e) {
+                console.error("Upload error: ", e);
+            }
+        };
+
+        // 삭제 시 클라우드 동기화 제거 연동
+        window.deleteEggFromCloud = async function(id) {
+            if (!window.db || !window.syncCode) return;
+            try {
+                const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'geckoEggs', String(id));
+                await deleteDoc(docRef);
+            } catch(e) {
+                console.error("Delete error: ", e);
+            }
+        };
+
+        // 초기 시작점 연동 분석
+        try {
+            // 브라우저 샌드박스 자체 파라미터가 있을 시 자동 적용
+            if (typeof __firebase_config !== 'undefined') {
+                const config = JSON.parse(__firebase_config);
+                window.enableFirebaseSync(config, 'default_sync');
+            } else {
+                // 사용자가 저장해 둔 설정 로드
+                const savedConfig = localStorage.getItem('gecko_firebase_config');
+                const savedCode = localStorage.getItem('gecko_sync_code');
+                if (savedConfig && savedCode) {
+                    window.enableFirebaseSync(JSON.parse(savedConfig), savedCode);
+                    document.getElementById('firebaseConfigInput').value = savedConfig;
+                    document.getElementById('syncCodeInput').value = savedCode;
+                }
+            }
+        } catch (e){}
+    </script>
+
+    <script>
+        // 에러 방어 로직 전송
         const sampleRecords = [
             { id: 1001, male: '초코', female: '봄', mateDate: '2026-03-30', layDate: '2026-04-22', eggCount: 2, targetTemp: '24.0', memo: '알 크고 하얗고 아주 건강함' },
-            { id: 1002, male: '단풍', female: '여름', mateDate: '2026-02-14', layDate: '2026-03-11', eggCount: 2, targetTemp: '24.0', memo: '무정란 의심되었으나 실 핏줄 보임' },
-            { id: 1003, male: '초코', female: '봄', mateDate: '2026-01-10', layDate: '2026-02-14', eggCount: 2, targetTemp: '24.0', memo: '해칭 성공 완료' },
-            { id: 1004, male: '초코', female: '봄', mateDate: '2026-06-15', layDate: '', eggCount: 0, targetTemp: '24.0', memo: '다음 산란 주기 대기 중' }
+            { id: 1002, male: '단풍', female: '여름', mateDate: '2026-02-14', layDate: '2026-03-11', eggCount: 2, targetTemp: '24.0', memo: '무정란 의심되었으나 실 핏줄 보임' }
         ];
 
-        let eggList = [];
+        window.eggList = [];
         let editingId = null;
         let currentSort = 'layDate'; // 기본 정렬 조건을 'layDate'(산란일순)로 세팅
         let currentFilter = 'all';
 
-        // 커스텀 모달 프로미스 제어
         let modalResolve = null;
 
         // 모던 토스트 팝업 처리
-        function showToast(msg) {
+        window.showToast = function(msg) {
             const toast = document.getElementById('toast');
             const toastMsg = document.getElementById('toastMsg');
             if (!toast || !toastMsg) return;
@@ -269,7 +438,6 @@
             toastMsg.innerText = msg;
             toast.classList.remove('hidden');
             
-            // 애니메이션 부드러운 전이
             setTimeout(() => {
                 toast.classList.remove('opacity-0');
                 toast.classList.add('opacity-100');
@@ -277,7 +445,6 @@
                 toast.classList.add('translate-y-0');
             }, 50);
 
-            // 2.5초 후 자동 숨김
             setTimeout(() => {
                 toast.classList.remove('opacity-100');
                 toast.classList.add('opacity-0');
@@ -287,8 +454,8 @@
             }, 2500);
         }
 
-        // 브라우저 팝업 제한 우회 확인 모달 작동기
-        function openConfirmModal(title, msg, isWarning = true) {
+        // 모달창 팝업 처리
+        window.openConfirmModal = function(title, msg, isWarning = true) {
             return new Promise((resolve) => {
                 document.getElementById('modalTitle').innerText = title;
                 document.getElementById('modalMsg').innerText = msg;
@@ -306,7 +473,7 @@
             });
         }
 
-        function handleModalAction(approved) {
+        window.handleModalAction = function(approved) {
             document.getElementById('confirmModal').classList.add('hidden');
             if (modalResolve) {
                 modalResolve(approved);
@@ -314,39 +481,116 @@
             }
         }
 
-        // 브라우저 로컬 저장소 활성 상태 점검 로드
+        // 동기화 모달 팝업 가시화 처리
+        window.openSyncModal = function() {
+            document.getElementById('syncModal').classList.remove('hidden');
+        }
+
+        window.closeSyncModal = function() {
+            document.getElementById('syncModal').classList.add('hidden');
+        }
+
+        // 방법 1: 텍스트 간편 백업 복사
+        window.exportDataToClipboard = function() {
+            try {
+                const dataStr = btoa(encodeURIComponent(JSON.stringify(window.eggList)));
+                
+                // 클립보드 복사 폴백 호환 처리
+                const tempTextarea = document.createElement('textarea');
+                tempTextarea.value = dataStr;
+                document.body.appendChild(tempTextarea);
+                tempTextarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                
+                window.showToast("📋 데이터 코드가 클립보드에 복사되었습니다! 카카오톡 등으로 전송해 다른 기기에 붙여넣으세요.");
+            } catch (e) {
+                window.showToast("⚠️ 백업 복사에 실패했습니다.");
+            }
+        }
+
+        // 방법 1: 텍스트 가져오기 적용
+        window.importDataFromInput = function() {
+            const rawCode = prompt("내보내기 했던 데이터 코드를 그대로 이곳에 붙여넣어 주세요.");
+            if (!rawCode) return;
+            try {
+                const decoded = JSON.parse(decodeURIComponent(atob(rawCode)));
+                if (Array.isArray(decoded)) {
+                    if (confirm("기존 스마트폰의 모든 데이터를 덮어쓰고 이 코드로 동기화하시겠습니까?")) {
+                        window.eggList = decoded;
+                        localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
+                        window.renderTable();
+                        window.showToast("📥 데이터를 완전히 연동/복원했습니다!");
+                        window.closeSyncModal();
+                    }
+                } else {
+                    window.showToast("⚠️ 올바른 데이터 코드가 아닙니다.");
+                }
+            } catch (e) {
+                window.showToast("⚠️ 잘못된 형식의 복사코드입니다.");
+            }
+        }
+
+        // 방법 2: Firebase 주소 및 동기화 코드 적용 저장
+        window.saveSyncCode = function() {
+            const code = document.getElementById('syncCodeInput').value.trim();
+            if (!code) {
+                alert("나만의 동기화 코드를 정해 입력해 주세요.");
+                return;
+            }
+            localStorage.setItem('gecko_sync_code', code);
+            window.showToast("동기화 그룹 코드 설정 저장 완료! 이제 아래 Firebase 설정까지 적용해주시면 실시간 동기화가 가동됩니다.");
+        }
+
+        window.saveFirebaseConfig = function() {
+            const configStr = document.getElementById('firebaseConfigInput').value.trim();
+            const code = document.getElementById('syncCodeInput').value.trim();
+            if (!configStr || !code) {
+                alert("동기화 그룹 코드와 Firebase 설정을 모두 작성해야 연동을 활성화할 수 있습니다.");
+                return;
+            }
+            try {
+                const parsed = JSON.parse(configStr);
+                localStorage.setItem('gecko_firebase_config', configStr);
+                localStorage.setItem('gecko_sync_code', code);
+                
+                window.showToast("Firebase 연결 및 가동을 시도합니다...");
+                window.enableFirebaseSync(parsed, code);
+                window.closeSyncModal();
+            } catch (e) {
+                alert("Firebase 연결 정보 형식이 잘못되었습니다. JSON 포맷으로 제대로 가져왔는지 확인해 주세요.");
+            }
+        }
+
+        // 브라우저 로컬 저장소 로드
         function initApp() {
             try {
                 const raw = localStorage.getItem('geckoEggs');
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed)) {
-                        eggList = parsed;
-                        document.getElementById('storageStatus').innerText = "로컬 저장소 동기화 중";
+                        window.eggList = parsed;
                     } else {
-                        eggList = [...sampleRecords];
+                        window.eggList = [...sampleRecords];
                     }
                 } else {
-                    eggList = [...sampleRecords];
+                    window.eggList = [...sampleRecords];
                 }
             } catch (err) {
-                eggList = [...sampleRecords];
-                const badge = document.getElementById('storageStatus');
-                badge.innerText = "안전 모드 가동 중 (메모리 세션)";
-                badge.className = "text-xs px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-medium";
+                window.eggList = [...sampleRecords];
             }
-            renderTable();
+            window.renderTable();
         }
 
         function saveToStorage() {
             try {
-                localStorage.setItem('geckoEggs', JSON.stringify(eggList));
+                localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
             } catch (err) {
                 console.warn("Storage writing blocked: ", err);
             }
         }
 
-        // [신규 기능] 수동 기입 8자리 포맷 자동변환 (YYYYMMDD -> YYYY-MM-DD)
+        // 수동 기입 8자리 포맷 자동변환 (YYYYMMDD -> YYYY-MM-DD)
         function formatDateInput(value) {
             let digits = value.replace(/\D/g, ''); // 숫자 이외의 문자 제거
             
@@ -460,7 +704,7 @@
 
         // 등록 순서가 꼬여도 입력 일자 순서로 올바른 "차수"를 실시간 추적 및 분배하는 계산 엔진
         function getClutchMap() {
-            const sortedList = [...eggList].sort((a, b) => {
+            const sortedList = [...window.eggList].sort((a, b) => {
                 const dateA = a.layDate || a.mateDate || '9999-12-31';
                 const dateB = b.layDate || b.mateDate || '9999-12-31';
                 return dateA.localeCompare(dateB);
@@ -485,14 +729,14 @@
         }
 
         // 정렬 및 상태 필터 변화 핸들러
-        function handleSortChange() {
+        window.handleSortChange = function() {
             currentSort = document.getElementById('sortSelector').value;
-            renderTable();
+            window.renderTable();
         }
 
-        function handleFilterChange() {
+        window.handleFilterChange = function() {
             currentFilter = document.getElementById('filterSelector').value;
-            renderTable();
+            window.renderTable();
         }
 
         // 상단 요약 카드 집계 함수
@@ -502,7 +746,7 @@
             let hatched = 0;
             let waiting = 0;
 
-            eggList.forEach(egg => {
+            window.eggList.forEach(egg => {
                 const count = parseInt(egg.eggCount) || 0;
                 total += count;
 
@@ -528,7 +772,7 @@
         }
 
         // 실시간 테이블 렌더링 엔진
-        function renderTable() {
+        window.renderTable = function() {
             const tbody = document.getElementById('eggTableBody');
             if (!tbody) return;
             tbody.innerHTML = '';
@@ -536,7 +780,7 @@
             updateSummaryStats();
 
             // 1단계: 조건 필터링 수행
-            let processedList = eggList.filter(egg => {
+            let processedList = window.eggList.filter(egg => {
                 if (!egg) return false;
                 
                 // 상태값 진단
@@ -555,7 +799,6 @@
             // 2단계: 선호 정렬 방식 계산 적용 (기본: 최근산란일이 위로 오도록 역순정렬)
             processedList.sort((a, b) => {
                 if (currentSort === 'layDate') {
-                    // 최근 산란일이 위로 가도록 역순 정렬 (미산란 개체는 아래로 정렬)
                     const dateA = a.layDate || '0000-00-00';
                     const dateB = b.layDate || '0000-00-00';
                     return dateB.localeCompare(dateA);
@@ -699,7 +942,7 @@
             });
         }
 
-        function resetForm() {
+        window.resetForm = function() {
             editingId = null;
             document.getElementById('incubatorForm').reset();
             document.getElementById('eggCount').value = 0;
@@ -711,8 +954,8 @@
             document.getElementById('editIndicator').classList.add('hidden');
         }
 
-        function editRecord(id) {
-            const record = eggList.find(item => item.id === id);
+        window.editRecord = function(id) {
+            const record = window.eggList.find(item => item.id === id);
             if (!record) return;
 
             editingId = id;
@@ -748,65 +991,80 @@
 
             // 서브밋 시 날짜 형식 유효성 재검증
             if (!isValidDateFormat(recordData.mateDate)) {
-                showToast("⚠️ 올바른 교배일 형식을 입력해 주세요. (예: 2026-06-21)");
+                window.showToast("⚠️ 올바른 교배일 형식을 입력해 주세요. (예: 2026-06-21)");
                 return;
             }
             if (recordData.layDate && !isValidDateFormat(recordData.layDate)) {
-                showToast("⚠️ 올바른 산란일 형식을 입력해 주세요. (예: 2026-06-21)");
+                window.showToast("⚠️ 올바른 산란일 형식을 입력해 주세요. (예: 2026-06-21)");
                 return;
             }
 
+            let finalEgg;
             if (editingId) {
-                const targetIndex = eggList.findIndex(item => item.id === editingId);
+                const targetIndex = window.eggList.findIndex(item => item.id === editingId);
                 if (targetIndex !== -1) {
-                    eggList[targetIndex] = { ...eggList[targetIndex], ...recordData };
+                    window.eggList[targetIndex] = { ...window.eggList[targetIndex], ...recordData };
+                    finalEgg = window.eggList[targetIndex];
                 }
-                resetForm();
-                showToast("기록 수정이 완료되었습니다.");
+                window.resetForm();
+                window.showToast("기록 수정이 완료되었습니다.");
             } else {
                 const newRecord = {
                     id: Date.now(),
                     ...recordData
                 };
-                eggList.push(newRecord);
+                window.eggList.push(newRecord);
+                finalEgg = newRecord;
                 document.getElementById('incubatorForm').reset();
                 document.getElementById('eggCount').value = 0;
-                showToast("새 기록이 안전하게 저장되었습니다.");
+                window.showToast("새 기록이 안전하게 저장되었습니다.");
             }
 
             saveToStorage();
-            renderTable();
+            if (window.uploadEggToCloud) {
+                window.uploadEggToCloud(finalEgg);
+            }
+            window.renderTable();
         });
 
         // 커스텀 모달 기반 비동기식 삭제 프로세스
-        async function deleteRecord(id) {
-            const confirmed = await openConfirmModal(
+        window.deleteRecord = async function(id) {
+            const confirmed = await window.openConfirmModal(
                 "기록 영구 삭제", 
                 "해당 파트너 조합의 교배/산란 기록을 완전히 지우시겠습니까? 복구가 불가능합니다.",
                 true
             );
             if (confirmed) {
-                eggList = eggList.filter(item => item.id !== id);
+                window.eggList = window.eggList.filter(item => item.id !== id);
                 saveToStorage();
-                if (editingId === id) resetForm();
-                renderTable();
-                showToast("기록이 성공적으로 삭제되었습니다.");
+                if (window.deleteEggFromCloud) {
+                    window.deleteEggFromCloud(id);
+                }
+                if (editingId === id) window.resetForm();
+                window.renderTable();
+                window.showToast("기록이 성공적으로 삭제되었습니다.");
             }
         }
 
         // 전체 초기화 프로세스
-        async function triggerClearAll() {
-            const confirmed = await openConfirmModal(
+        window.triggerClearAll = async function() {
+            const confirmed = await window.openConfirmModal(
                 "데이터 전체 영구 초기화", 
                 "정말로 모든 브리딩 기록을 지우시겠습니까?\n이 작업은 로컬 저장소를 포함하여 되돌릴 수 없습니다.",
                 true
             );
             if (confirmed) {
-                eggList = [];
+                // 클라우드가 켜져있다면 클라우드 개체들 전원 삭제
+                if (window.db && window.syncCode) {
+                    for (let egg of window.eggList) {
+                        window.deleteEggFromCloud(egg.id);
+                    }
+                }
+                window.eggList = [];
                 saveToStorage();
-                resetForm();
-                renderTable();
-                showToast("모든 보관 데이터가 말끔히 리셋되었습니다.");
+                window.resetForm();
+                window.renderTable();
+                window.showToast("모든 보관 데이터가 말끔히 리셋되었습니다.");
             }
         }
 
