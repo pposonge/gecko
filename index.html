@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>크레스티드 게코 부화 관리 트래커</title>
+    <!-- 가장 호환성이 검증된 Tailwind CSS CDN 사용 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        body { 
+            font-family: 'Noto Sans KR', 'Inter', sans-serif; 
+            -webkit-font-smoothing: antialiased;
+        }
+        /* 테이블 스크롤바 정밀 디자인 */
+        .prevent-scroll-bar::-webkit-scrollbar {
+            height: 6px;
+        }
+        .prevent-scroll-bar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .prevent-scroll-bar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-3 md:p-6 pb-20">
+
+    <div class="max-w-[1600px] mx-auto">
+        <!-- 상단 헤더 -->
+        <header class="mb-5 border-b border-slate-200 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    🦎 크레스티드 게코 스마트 부화기
+                </h1>
+                <p class="text-xs text-slate-500 mt-1">
+                    동일 부모 조합의 차수 자동 계산부터 온도별 D-Day 트래킹, 상세 메모 기능까지 한 번에 관리하세요.
+                </p>
+            </div>
+            <!-- 실시간 시스템 안정 상태 표시 -->
+            <div id="storageStatus" class="text-xs px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
+                로컬 저장소 활성화
+            </div>
+        </header>
+
+        <!-- 상단 통계 요약 카드 섹션 -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <span class="text-[11px] font-bold text-slate-400">총 알 개수</span>
+                <div class="flex items-baseline gap-1 mt-2">
+                    <span id="statTotalEggs" class="text-2xl font-extrabold text-slate-800">0</span>
+                    <span class="text-xs text-slate-500">개</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <span class="text-[11px] font-bold text-emerald-500">부화 대기 중 (Incubating)</span>
+                <div class="flex items-baseline gap-1 mt-2">
+                    <span id="statIncubating" class="text-2xl font-extrabold text-emerald-600">0</span>
+                    <span class="text-xs text-emerald-500">개</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <span class="text-[11px] font-bold text-blue-500">해칭 완료 (Hatched)</span>
+                <div class="flex items-baseline gap-1 mt-2">
+                    <span id="statHatched" class="text-2xl font-extrabold text-blue-600">0</span>
+                    <span class="text-xs text-slate-500">개</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <span class="text-[11px] font-bold text-amber-500">산란 대기 중 (Waiting)</span>
+                <div class="flex items-baseline gap-1 mt-2">
+                    <span id="statWaiting" class="text-2xl font-extrabold text-amber-600">0</span>
+                    <span class="text-xs text-slate-500">건</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 디버그 및 에러 자체 콘솔창 -->
+        <div id="errorConsole" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-mono">
+            <h3 class="font-bold text-sm mb-1">⚠️ 앱 내 오작동 감지 장치:</h3>
+            <p id="errorMessage"></p>
+            <button onclick="document.getElementById('errorConsole').classList.add('hidden')" class="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-red-900 font-semibold cursor-pointer">안내창 닫기</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <!-- [왼쪽] 데이터 입력 및 수정 폼 (공간 압축형) -->
+            <div class="lg:col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-fit">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="formTitle" class="text-sm font-bold text-slate-900">새 교배/산란 등록</h2>
+                    <span id="editIndicator" class="hidden text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded">수정 모드</span>
+                </div>
+                
+                <form id="incubatorForm" class="space-y-3.5">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">수컷 이름 (Sire)</label>
+                        <input type="text" id="male" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="최대 6-10자" required>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">암컷 이름 (Dam)</label>
+                        <input type="text" id="female" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="최대 6-10자" required>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">교배 진행일</label>
+                        <input type="date" id="mateDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" required>
+                    </div>
+                    <div class="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100">
+                        <label class="block text-[11px] font-bold text-emerald-800 mb-1">산란 완료일 (추후 선택 가능)</label>
+                        <input type="date" id="layDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition">
+                        <p class="text-[10px] text-emerald-600 mt-1">※ 산란 전이라면 비워두세요.</p>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">알 산란 개수</label>
+                        <input type="number" id="eggCount" min="0" max="2" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" required>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">인큐베이터 설정 온도</label>
+                        <select id="targetTemp" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                            <option value="27.0">27.0°C (부화 42일 소요)</option>
+                            <option value="26.5">26.5°C (부화 47일 소요)</option>
+                            <option value="26.0">26.0°C (부화 52일 소요)</option>
+                            <option value="25.5">25.5°C (부화 57일 소요)</option>
+                            <option value="25.0">25.0°C (부화 62일 소요)</option>
+                            <option value="24.5">24.5°C (부화 67일 소요)</option>
+                            <option value="24.0" selected>24.0°C (부화 72일 소요)</option>
+                            <option value="23.5">23.5°C (부화 77일 소요)</option>
+                            <option value="23.0">23.0°C (부화 82일 소요)</option>
+                            <option value="22.5">22.5°C (부화 87일 소요)</option>
+                            <option value="22.0">22.0°C (부화 92일 소요)</option>
+                            <option value="21.5">21.5°C (부화 97일 소요)</option>
+                            <option value="21.0">21.0°C (부화 102일 소요)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">기타 메모 사항 (선택)</label>
+                        <textarea id="memo" rows="2" maxlength="50" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="예: 무정란 의심, 인큐베이터 2층 등"></textarea>
+                    </div>
+                    
+                    <div class="space-y-2 pt-2">
+                        <button type="submit" id="submitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-xs transition shadow-sm cursor-pointer">
+                            등록하기
+                        </button>
+                        <button type="button" id="cancelBtn" onclick="resetForm()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 rounded-lg text-xs transition shadow-sm hidden cursor-pointer">
+                            수정 취소
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- [오른쪽] 대시보드 리스트 -->
+            <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                
+                <!-- 정렬 및 상태 필터링 조작 바 -->
+                <div class="p-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 bg-slate-50/50">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-slate-900">부화 현황 실시간 모니터</span>
+                    </div>
+                    
+                    <!-- 정렬 / 필터 셀렉터 컨트롤 -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">상태 필터:</span>
+                            <select id="filterSelector" onchange="handleFilterChange()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <option value="all">전체보기</option>
+                                <option value="incubating">부화 중 (미해칭)</option>
+                                <option value="hatched">해칭 완료</option>
+                                <option value="waiting">산란 대기 (미산란)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">정렬 조건:</span>
+                            <select id="sortSelector" onchange="handleSortChange()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <option value="created">최근 등록순</option>
+                                <option value="maleSort">수컷 이름순 (A-Z)</option>
+                                <option value="femaleSort">암컷 이름순 (A-Z)</option>
+                                <option value="mateDate">교배일순</option>
+                                <option value="layDate">산란일순</option>
+                                <option value="expectedDate">부화예정일 (D-Day)순</option>
+                            </select>
+                        </div>
+                        <button onclick="triggerClearAll()" class="text-[10px] bg-white text-slate-600 hover:text-red-700 hover:bg-red-50 border border-slate-300 hover:border-red-200 px-3 py-1.5 rounded-lg transition font-medium cursor-pointer ml-1">
+                            전체 초기화 ⚠️
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 가로 스크롤바 최소화한 컴팩트 테이블 레이아웃 -->
+                <div class="overflow-x-auto prevent-scroll-bar">
+                    <table class="w-full text-left border-collapse min-w-[1000px] lg:min-w-0">
+                        <thead>
+                            <tr class="bg-slate-100/30 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                <th class="px-3 py-3 w-[200px]">부모 매칭 조합 (차수)</th>
+                                <th class="px-2 py-3 text-center">교배일</th>
+                                <th class="px-2 py-3 text-center">산란일</th>
+                                <th class="px-2 py-3 text-center w-[65px]">알수</th>
+                                <th class="px-2 py-3 text-center w-[65px]">온도</th>
+                                <th class="px-2 py-3 text-center w-[75px]">소요일</th>
+                                <th class="px-3 py-3 text-center">해칭 예정일</th>
+                                <th class="px-3 py-3 text-center w-[150px]">D-Day 카운트</th>
+                                <th class="px-3 py-3 text-center w-[120px]">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eggTableBody" class="divide-y divide-slate-200 text-xs text-slate-700">
+                            <!-- JS를 통해 데이터 리스트가 실시간 렌더링됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 브라우저 Confirm 창을 대체하는 인앱 모달 -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-100 transform transition-all scale-100">
+            <div class="flex items-center gap-3 mb-3">
+                <span id="modalIcon" class="text-2xl">⚠️</span>
+                <h3 id="modalTitle" class="text-sm font-bold text-slate-900">확인 필요한 항목</h3>
+            </div>
+            <p id="modalMsg" class="text-xs text-slate-600 mb-6 leading-relaxed">정말 선택하신 작업을 진행하시겠습니까?</p>
+            <div class="flex justify-end gap-2 text-xs font-semibold">
+                <button onclick="handleModalAction(false)" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer transition">취소</button>
+                <button id="modalConfirmBtn" onclick="handleModalAction(true)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition">실행</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 작업 알림용 깔끔한 인앱 토스트 팝업 -->
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-950 text-white text-xs px-4 py-3 rounded-xl shadow-2xl z-50 transition-all duration-300 transform translate-y-4 opacity-0 flex items-center gap-2 border border-slate-800">
+        <span class="text-emerald-400">✔</span>
+        <span id="toastMsg">작업이 처리되었습니다.</span>
+    </div>
+
+    <script>
+        // 에러 실시간 예외 감지 장치
+        window.addEventListener('error', function(e) {
+            const consoleBox = document.getElementById('errorConsole');
+            const messageEl = document.getElementById('errorMessage');
+            if (consoleBox && messageEl) {
+                consoleBox.classList.remove('hidden');
+                messageEl.innerText = `${e.message} (발생 위치: ${e.filename}:${e.lineno})`;
+            }
+        });
+
+        // 기본 안전 데이터 샘플 (엑셀 기반 최근 데이터)
+        const sampleRecords = [
+            { id: 1001, male: '초코', female: '봄', mateDate: '2026-03-30', layDate: '2026-04-22', eggCount: 2, targetTemp: '24.0', memo: '알 크고 하얗고 아주 건강함' },
+            { id: 1002, male: '단풍', female: '여름', mateDate: '2026-02-14', layDate: '2026-03-11', eggCount: 2, targetTemp: '24.0', memo: '무정란 의심되었으나 실 핏줄 보임' },
+            { id: 1003, male: '초코', female: '봄', mateDate: '2026-01-10', layDate: '2026-02-14', eggCount: 2, targetTemp: '24.0', memo: '해칭 성공 완료' },
+            { id: 1004, male: '초코', female: '봄', mateDate: '2026-06-15', layDate: '', eggCount: 0, targetTemp: '24.0', memo: '다음 산란 주기 대기 중' }
+        ];
+
+        let eggList = [];
+        let editingId = null;
+        let currentSort = 'created';
+        let currentFilter = 'all';
+
+        // 커스텀 모달 프로미스 제어
+        let modalResolve = null;
+
+        // 모던 토스트 팝업 처리
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            if (!toast || !toastMsg) return;
+            
+            toastMsg.innerText = msg;
+            toast.classList.remove('hidden');
+            
+            // 애니메이션 부드러운 전이
+            setTimeout(() => {
+                toast.classList.replace('opacity-0', 'opacity-100');
+                toast.classList.replace('translate-y-4', 'translate-y-0');
+            }, 50);
+
+            // 2.5초 후 자동 숨김
+            setTimeout(() => {
+                toast.classList.replace('opacity-100', 'opacity-0');
+                toast.classList.replace('translate-y-0', 'translate-y-4');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 2500);
+        }
+
+        // 브라우저 팝업 제한 우회 확인 모달 작동기
+        function openConfirmModal(title, msg, isWarning = true) {
+            return new Promise((resolve) => {
+                document.getElementById('modalTitle').innerText = title;
+                document.getElementById('modalMsg').innerText = msg;
+                document.getElementById('modalIcon').innerText = isWarning ? '⚠️' : '❓';
+                
+                const btn = document.getElementById('modalConfirmBtn');
+                if (isWarning) {
+                    btn.className = "px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition";
+                } else {
+                    btn.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg cursor-pointer transition";
+                }
+                
+                document.getElementById('confirmModal').classList.remove('hidden');
+                modalResolve = resolve;
+            });
+        }
+
+        function handleModalAction(approved) {
+            document.getElementById('confirmModal').classList.add('hidden');
+            if (modalResolve) {
+                modalResolve(approved);
+                modalResolve = null;
+            }
+        }
+
+        // 브라우저 로컬 저장소 활성 상태 점검 로드
+        function initApp() {
+            try {
+                const raw = localStorage.getItem('geckoEggs');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        eggList = parsed;
+                        document.getElementById('storageStatus').innerText = "로컬 저장소 동기화 중";
+                    } else {
+                        eggList = [...sampleRecords];
+                    }
+                } else {
+                    eggList = [...sampleRecords];
+                }
+            } catch (err) {
+                eggList = [...sampleRecords];
+                const badge = document.getElementById('storageStatus');
+                badge.innerText = "안전 모드 가동 중 (메모리 세션)";
+                badge.className = "text-xs px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-medium";
+            }
+            renderTable();
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem('geckoEggs', JSON.stringify(eggList));
+            } catch (err) {
+                console.warn("Storage writing blocked: ", err);
+            }
+        }
+
+        // 특정 문자열 날짜를 안전하게 로컬 시간으로 해석하는 파서 (하루 밀림 현상 완벽 방지)
+        function parseLocalDate(dateStr) {
+            if (!dateStr || dateStr.trim() === '') return null;
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return null;
+            
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            
+            const date = new Date(year, month, day);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        function addDays(dateStr, days) {
+            const date = parseLocalDate(dateStr);
+            if (!date) return '-';
+            
+            date.setDate(date.getDate() + days);
+            
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function getRequiredDays(temp) {
+            const T = parseFloat(temp) || 24.0;
+            return Math.round(72 - (T - 24.0) * 10);
+        }
+
+        function getDDayValue(expectedDateStr) {
+            if (!expectedDateStr || expectedDateStr === '-') return 99999;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expDate = parseLocalDate(expectedDateStr);
+            if (!expDate) return 99999;
+            expDate.setHours(0, 0, 0, 0);
+            return Math.round((expDate - today) / (1000 * 60 * 60 * 24));
+        }
+
+        function getDDayString(diffDays) {
+            if (diffDays === 99999) return '산란 대기 중';
+            if (diffDays > 0) return `D-${diffDays}`;
+            if (diffDays === 0) return `★ 오늘 해칭!`;
+            return `해칭 완료 (+${Math.abs(diffDays)}일)`;
+        }
+
+        // 차수별 구별 클래스 (12차 완벽 대응)
+        function getClutchStyle(num) {
+            const styles = {
+                1: "bg-blue-50 text-blue-600 border-blue-100",
+                2: "bg-emerald-50 text-emerald-600 border-emerald-100",
+                3: "bg-purple-50 text-purple-600 border-purple-100",
+                4: "bg-amber-50 text-amber-700 border-amber-200",
+                5: "bg-rose-50 text-rose-600 border-rose-100",
+                6: "bg-indigo-50 text-indigo-600 border-indigo-100",
+                7: "bg-teal-50 text-teal-600 border-teal-100",
+                8: "bg-cyan-50 text-cyan-600 border-cyan-100",
+                9: "bg-orange-50 text-orange-600 border-orange-200",
+                10: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
+                11: "bg-lime-50 text-lime-700 border-lime-200",
+                12: "bg-red-50 text-red-600 border-red-100"
+            };
+            return styles[num] || "bg-slate-100 text-slate-700 border-slate-200";
+        }
+
+        // 등록 순서가 꼬여도 입력 일자 순서로 올바른 "차수"를 실시간 추적 및 분배하는 계산 엔진
+        function getClutchMap() {
+            const sortedList = [...eggList].sort((a, b) => {
+                const dateA = a.layDate || a.mateDate || '9999-12-31';
+                const dateB = b.layDate || b.mateDate || '9999-12-31';
+                return dateA.localeCompare(dateB);
+            });
+
+            const counts = {};
+            const clutchMap = {};
+
+            sortedList.forEach(egg => {
+                if (!egg || !egg.id) return;
+                const m = String(egg.male || '').trim();
+                const f = String(egg.female || '').trim();
+                if (!m || !f) return;
+
+                const pairKey = `${m}_${f}`;
+                if (!counts[pairKey]) counts[pairKey] = 0;
+                counts[pairKey]++;
+                clutchMap[egg.id] = counts[pairKey];
+            });
+
+            return clutchMap;
+        }
+
+        // 정렬 및 상태 필터 변화 핸들러
+        function handleSortChange() {
+            currentSort = document.getElementById('sortSelector').value;
+            renderTable();
+        }
+
+        function handleFilterChange() {
+            currentFilter = document.getElementById('filterSelector').value;
+            renderTable();
+        }
+
+        // 상단 요약 카드 집계 함수
+        function updateSummaryStats() {
+            let total = 0;
+            let incubating = 0;
+            let hatched = 0;
+            let waiting = 0;
+
+            eggList.forEach(egg => {
+                const count = parseInt(egg.eggCount) || 0;
+                total += count;
+
+                if (!egg.layDate) {
+                    waiting += 1;
+                } else {
+                    const days = getRequiredDays(egg.targetTemp);
+                    const expectedDate = addDays(egg.layDate, days);
+                    const diffDays = getDDayValue(expectedDate);
+                    
+                    if (diffDays < 0) {
+                        hatched += count;
+                    } else {
+                        incubating += count;
+                    }
+                }
+            });
+
+            document.getElementById('statTotalEggs').innerText = total;
+            document.getElementById('statIncubating').innerText = incubating;
+            document.getElementById('statHatched').innerText = hatched;
+            document.getElementById('statWaiting').innerText = waiting;
+        }
+
+        // 실시간 테이블 렌더링 엔진
+        function renderTable() {
+            const tbody = document.getElementById('eggTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            
+            updateSummaryStats();
+
+            // 1단계: 조건 필터링 수행
+            let processedList = eggList.filter(egg => {
+                if (!egg) return false;
+                
+                // 상태값 진단
+                let state = 'waiting'; // 미산란
+                if (egg.layDate) {
+                    const days = getRequiredDays(egg.targetTemp);
+                    const expected = addDays(egg.layDate, days);
+                    const diff = getDDayValue(expected);
+                    state = (diff < 0) ? 'hatched' : 'incubating';
+                }
+
+                if (currentFilter === 'all') return true;
+                return state === currentFilter;
+            });
+
+            // 2단계: 선호 정렬 방식 계산 적용 (수컷 이름순, 암컷 이름순 신규 추가)
+            processedList.sort((a, b) => {
+                if (currentSort === 'maleSort') {
+                    // 수컷 이름으로 가나다순 정렬 후, 수컷명이 같을 경우 암컷 이름순 -> 산란/교배일 순으로 2차 정렬
+                    const compM = (a.male || '').localeCompare(b.male || '');
+                    if (compM !== 0) return compM;
+                    const compF = (a.female || '').localeCompare(b.female || '');
+                    if (compF !== 0) return compF;
+                    return (a.layDate || a.mateDate || '').localeCompare(b.layDate || b.mateDate || '');
+                }
+                if (currentSort === 'femaleSort') {
+                    // 암컷 이름으로 가나다순 정렬 후, 암컷명이 같을 경우 수컷 이름순 -> 산란/교배일 순으로 2차 정렬
+                    const compF = (a.female || '').localeCompare(b.female || '');
+                    if (compF !== 0) return compF;
+                    const compM = (a.male || '').localeCompare(b.male || '');
+                    if (compM !== 0) return compM;
+                    return (a.layDate || a.mateDate || '').localeCompare(b.layDate || b.mateDate || '');
+                }
+                if (currentSort === 'mateDate') {
+                    return (a.mateDate || '9999-12-31').localeCompare(b.mateDate || '9999-12-31');
+                }
+                if (currentSort === 'layDate') {
+                    return (a.layDate || '9999-12-31').localeCompare(b.layDate || '9999-12-31');
+                }
+                if (currentSort === 'expectedDate') {
+                    const expA = a.layDate ? addDays(a.layDate, getRequiredDays(a.targetTemp)) : '9999-12-31';
+                    const expB = b.layDate ? addDays(b.layDate, getRequiredDays(b.targetTemp)) : '9999-12-31';
+                    return expA.localeCompare(expB);
+                }
+                // 기본값: 최근 등록순(id 역순)
+                return b.id - a.id;
+            });
+
+            // 필터/정렬 후 리스트가 비었을 때 화면 표시 방어책
+            if (processedList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-4 py-16 text-center text-slate-400 font-medium">
+                            <div class="text-3xl mb-2">🔍</div>
+                            지정한 정렬/필터 조건에 부합하는 부화 데이터가 존재하지 않습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const clutchMap = getClutchMap();
+
+            processedList.forEach(egg => {
+                const id = egg.id;
+                const male = (egg.male || '미정').trim();
+                const female = (egg.female || '미정').trim();
+                const mateDate = egg.mateDate || '-';
+                const layDate = egg.layDate || '';
+                const eggCount = parseInt(egg.eggCount) || 0;
+                const targetTemp = egg.targetTemp || '24.0';
+                const memo = (egg.memo || '').trim();
+
+                let expectedDate = '-';
+                let diffDays = 99999;
+                let requiredDays = '-';
+
+                if (layDate && layDate !== '-') {
+                    const daysNum = getRequiredDays(targetTemp);
+                    requiredDays = `${daysNum}일`;
+                    expectedDate = addDays(layDate, daysNum);
+                    diffDays = getDDayValue(expectedDate);
+                }
+
+                const dDayText = getDDayString(diffDays);
+                const isHatched = diffDays < 0;
+                const clutchNum = clutchMap[id] || 1;
+                const clutchColorClass = getClutchStyle(clutchNum);
+
+                // 해칭 임박 알 강조 (D-7 이내 ~ 오늘)
+                const isImminent = (diffDays >= 0 && diffDays <= 7);
+
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-50/80 transition-colors ${isHatched ? 'bg-slate-50/50 text-slate-400' : ''}`;
+                
+                tr.innerHTML = `
+                    <td class="px-3 py-3.5 font-semibold">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                                <span class="text-blue-500 font-bold text-[10px]">♂</span> <span class="max-w-[70px] truncate">${male}</span>
+                                <span class="text-slate-300">×</span>
+                                <span class="text-pink-500 font-bold text-[10px]">♀</span> <span class="max-w-[70px] truncate">${female}</span>
+                                <span class="ml-1 text-[9px] px-1.5 py-0.5 rounded font-bold border whitespace-nowrap ${clutchColorClass}">
+                                    ${clutchNum}차
+                                </span>
+                            </div>
+                            ${memo ? `<p class="text-[10px] text-slate-400 font-normal max-w-[180px] truncate" title="${memo}">${memo}</p>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-2 py-3.5 text-center text-slate-500 whitespace-nowrap">${mateDate}</td>
+                    <td class="px-2 py-3.5 text-center font-medium whitespace-nowrap ${layDate ? 'text-slate-700' : 'text-amber-600 font-semibold'}">
+                        ${layDate || '미산란'}
+                    </td>
+                    <td class="px-2 py-3.5 text-center font-bold whitespace-nowrap">${eggCount}개</td>
+                    <td class="px-2 py-3.5 text-center whitespace-nowrap">
+                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded border border-slate-200">
+                            ${targetTemp}°C
+                        </span>
+                    </td>
+                    <td class="px-2 py-3.5 text-center text-slate-500 font-medium whitespace-nowrap">${requiredDays}</td>
+                    <td class="px-3 py-3.5 text-center text-slate-600 font-medium whitespace-nowrap">${expectedDate}</td>
+                    <td class="px-3 py-3.5 text-center whitespace-nowrap">
+                        <span class="px-2.5 py-1 text-[10px] font-bold rounded-full border whitespace-nowrap ${
+                            !layDate ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                            isHatched ? 'bg-slate-100 text-slate-400 border-slate-200' :
+                            isImminent ? 'bg-red-50 text-red-600 border-red-200 animate-pulse font-extrabold shadow-sm' : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                        }">
+                            ${dDayText}
+                        </span>
+                    </td>
+                    <td class="px-3 py-3.5 text-center space-x-2 whitespace-nowrap">
+                        <button onclick="editRecord(${id})" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer">수정</button>
+                        <button onclick="deleteRecord(${id})" class="text-[11px] text-red-500 hover:text-red-700 font-semibold cursor-pointer">삭제</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('incubatorForm').reset();
+            document.getElementById('eggCount').value = 0;
+            
+            document.getElementById('formTitle').innerText = "새 교배/산란 등록";
+            document.getElementById('submitBtn').innerText = "등록하기";
+            document.getElementById('submitBtn').className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-xs transition shadow-sm cursor-pointer";
+            document.getElementById('cancelBtn').classList.add('hidden');
+            document.getElementById('editIndicator').classList.add('hidden');
+        }
+
+        function editRecord(id) {
+            const record = eggList.find(item => item.id === id);
+            if (!record) return;
+
+            editingId = id;
+            document.getElementById('male').value = record.male || '';
+            document.getElementById('female').value = record.female || '';
+            document.getElementById('mateDate').value = record.mateDate || '';
+            document.getElementById('layDate').value = record.layDate || '';
+            document.getElementById('eggCount').value = record.eggCount !== undefined ? record.eggCount : 0;
+            document.getElementById('targetTemp').value = record.targetTemp || '24.0';
+            document.getElementById('memo').value = record.memo || '';
+
+            document.getElementById('formTitle').innerText = "기록 정보 수정";
+            document.getElementById('submitBtn').innerText = "수정 완료";
+            document.getElementById('submitBtn').className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-xs transition shadow-sm cursor-pointer";
+            document.getElementById('cancelBtn').classList.remove('hidden');
+            document.getElementById('editIndicator').classList.remove('hidden');
+
+            document.getElementById('incubatorForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.getElementById('incubatorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const recordData = {
+                male: document.getElementById('male').value.trim(),
+                female: document.getElementById('female').value.trim(),
+                mateDate: document.getElementById('mateDate').value,
+                layDate: document.getElementById('layDate').value,
+                eggCount: parseInt(document.getElementById('eggCount').value, 10) || 0,
+                targetTemp: document.getElementById('targetTemp').value,
+                memo: document.getElementById('memo').value.trim()
+            };
+
+            if (editingId) {
+                const targetIndex = eggList.findIndex(item => item.id === editingId);
+                if (targetIndex !== -1) {
+                    eggList[targetIndex] = { ...eggList[targetIndex], ...recordData };
+                }
+                resetForm();
+                showToast("기록 수정이 완료되었습니다.");
+            } else {
+                const newRecord = {
+                    id: Date.now(),
+                    ...recordData
+                };
+                eggList.push(newRecord);
+                document.getElementById('incubatorForm').reset();
+                document.getElementById('eggCount').value = 0;
+                showToast("새 기록이 안전하게 저장되었습니다.");
+            }
+
+            saveToStorage();
+            renderTable();
+        });
+
+        // 커스텀 모달 기반 비동기식 삭제 프로세스
+        async function deleteRecord(id) {
+            const confirmed = await openConfirmModal(
+                "기록 영구 삭제", 
+                "해당 파트너 조합의 교배/산란 기록을 완전히 지우시겠습니까? 복구가 불가능합니다.",
+                true
+            );
+            if (confirmed) {
+                eggList = eggList.filter(item => item.id !== id);
+                saveToStorage();
+                if (editingId === id) resetForm();
+                renderTable();
+                showToast("기록이 성공적으로 삭제되었습니다.");
+            }
+        }
+
+        // 전체 초기화 프로세스
+        async function triggerClearAll() {
+            const confirmed = await openConfirmModal(
+                "데이터 전체 영구 초기화", 
+                "정말로 모든 브리딩 기록을 지우시겠습니까?\n이 작업은 로컬 저장소를 포함하여 되돌릴 수 없습니다.",
+                true
+            );
+            if (confirmed) {
+                eggList = [];
+                saveToStorage();
+                resetForm();
+                renderTable();
+                showToast("모든 보관 데이터가 말끔히 리셋되었습니다.");
+            }
+        }
+
+        // 페이지 구동 스타트
+        initApp();
+    </script>
+</body>
+</html>
