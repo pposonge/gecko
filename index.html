@@ -102,11 +102,13 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">교배 진행일</label>
-                        <input type="date" id="mateDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" required>
+                        <!-- 수동 입력 편의를 위해 text 타입으로 변경 및 자리수 제한 자동완성 안내 추가 -->
+                        <input type="text" id="mateDate" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="예: 20260611 또는 2026-06-11" required>
                     </div>
                     <div class="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100">
                         <label class="block text-[11px] font-bold text-emerald-800 mb-1">산란 완료일 (추후 선택 가능)</label>
-                        <input type="date" id="layDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition">
+                        <!-- 수동 입력 편의를 위해 text 타입으로 변경 및 자리수 제한 자동완성 안내 추가 -->
+                        <input type="text" id="layDate" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition" placeholder="예: 20260611 또는 2026-06-11">
                         <p class="text-[10px] text-emerald-600 mt-1">※ 산란 전이라면 비워두세요.</p>
                     </div>
                     <div>
@@ -170,11 +172,12 @@
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">정렬 조건:</span>
                             <select id="sortSelector" onchange="handleSortChange()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <!-- 산란일순(최근순)을 기본 선택 및 최상단으로 설정 -->
+                                <option value="layDate" selected>산란일순 (최근순)</option>
                                 <option value="created">최근 등록순</option>
                                 <option value="maleSort">수컷 이름순 (A-Z)</option>
                                 <option value="femaleSort">암컷 이름순 (A-Z)</option>
                                 <option value="mateDate">교배일순</option>
-                                <option value="layDate">산란일순</option>
                                 <option value="expectedDate">부화예정일 (D-Day)순</option>
                             </select>
                         </div>
@@ -251,7 +254,7 @@
 
         let eggList = [];
         let editingId = null;
-        let currentSort = 'created';
+        let currentSort = 'layDate'; // 기본 정렬 조건을 'layDate'(산란일순)로 세팅
         let currentFilter = 'all';
 
         // 커스텀 모달 프로미스 제어
@@ -343,6 +346,50 @@
             }
         }
 
+        // [신규 기능] 수동 기입 8자리 포맷 자동변환 (YYYYMMDD -> YYYY-MM-DD)
+        function formatDateInput(value) {
+            let digits = value.replace(/\D/g, ''); // 숫자 이외의 문자 제거
+            
+            // 연도가 최대 4자리로 제한되도록 전체 숫자를 8자리로 원천 컷
+            if (digits.length > 8) {
+                digits = digits.substring(0, 8);
+            }
+            
+            if (digits.length <= 4) {
+                return digits;
+            } else if (digits.length <= 6) {
+                return `${digits.substring(0, 4)}-${digits.substring(4, 6)}`;
+            } else {
+                return `${digits.substring(0, 4)}-${digits.substring(4, 6)}-${digits.substring(6, 8)}`;
+            }
+        }
+
+        // 날짜 유효성 검증 함수
+        function isValidDateFormat(dateStr) {
+            if (!dateStr) return true; // 빈값 허용(산란일 미지정 등)
+            const regex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!regex.test(dateStr)) return false;
+            
+            const parts = dateStr.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const d = new Date(year, month, day);
+            return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+        }
+
+        // 수동 입력 실시간 자동 변환 이벤트 리스너 등록
+        const dateInputIds = ['mateDate', 'layDate'];
+        dateInputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', function(e) {
+                    const formatted = formatDateInput(e.target.value);
+                    e.target.value = formatted;
+                });
+            }
+        });
+
         // 특정 문자열 날짜를 안전하게 로컬 시간으로 해석하는 파서 (하루 밀림 현상 완벽 방지)
         function parseLocalDate(dateStr) {
             if (!dateStr || dateStr.trim() === '') return null;
@@ -369,6 +416,7 @@
             return `${yyyy}-${mm}-${dd}`;
         }
 
+        // 부화 타깃 온도별 소요일 계산 (24도 72일 기준, 0.5도당 5일씩 증감하는 정확한 공식 반영)
         function getRequiredDays(temp) {
             const T = parseFloat(temp) || 24.0;
             return Math.round(72 - (T - 24.0) * 10);
@@ -504,8 +552,14 @@
                 return state === currentFilter;
             });
 
-            // 2단계: 선호 정렬 방식 계산 적용 (수컷 이름순, 암컷 이름순)
+            // 2단계: 선호 정렬 방식 계산 적용 (기본: 최근산란일이 위로 오도록 역순정렬)
             processedList.sort((a, b) => {
+                if (currentSort === 'layDate') {
+                    // 최근 산란일이 위로 가도록 역순 정렬 (미산란 개체는 아래로 정렬)
+                    const dateA = a.layDate || '0000-00-00';
+                    const dateB = b.layDate || '0000-00-00';
+                    return dateB.localeCompare(dateA);
+                }
                 if (currentSort === 'maleSort') {
                     const compM = (a.male || '').localeCompare(b.male || '');
                     if (compM !== 0) return compM;
@@ -523,15 +577,12 @@
                 if (currentSort === 'mateDate') {
                     return (a.mateDate || '9999-12-31').localeCompare(b.mateDate || '9999-12-31');
                 }
-                if (currentSort === 'layDate') {
-                    return (a.layDate || '9999-12-31').localeCompare(b.layDate || '9999-12-31');
-                }
                 if (currentSort === 'expectedDate') {
                     const expA = a.layDate ? addDays(a.layDate, getRequiredDays(a.targetTemp)) : '9999-12-31';
                     const expB = b.layDate ? addDays(b.layDate, getRequiredDays(b.targetTemp)) : '9999-12-31';
                     return expA.localeCompare(expB);
                 }
-                // 기본값: 최근 등록순(id 역순)
+                // 'created': 최근 등록순 (id 역순)
                 return b.id - a.id;
             });
 
@@ -694,6 +745,16 @@
                 targetTemp: document.getElementById('targetTemp').value,
                 memo: document.getElementById('memo').value.trim()
             };
+
+            // 서브밋 시 날짜 형식 유효성 재검증
+            if (!isValidDateFormat(recordData.mateDate)) {
+                showToast("⚠️ 올바른 교배일 형식을 입력해 주세요. (예: 2026-06-21)");
+                return;
+            }
+            if (recordData.layDate && !isValidDateFormat(recordData.layDate)) {
+                showToast("⚠️ 올바른 산란일 형식을 입력해 주세요. (예: 2026-06-21)");
+                return;
+            }
 
             if (editingId) {
                 const targetIndex = eggList.findIndex(item => item.id === editingId);
