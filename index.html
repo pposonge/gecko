@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>크레스티드 게코 부화 관리 트래커</title>
+    <title>크레스티드 게코 산란 관리</title>
     <!-- 가장 호환성이 검증된 Tailwind CSS CDN 사용 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -32,10 +32,10 @@
         <header class="mb-5 border-b border-slate-200 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    🦎 크레스티드 게코 스마트 부화기
+                    🦎 크레스티드 게코 산란 관리
                 </h1>
                 <p class="text-xs text-slate-500 mt-1">
-                    동일 부모 조합의 차수 자동 계산부터 온도별 D-Day 트래킹, 상세 메모 기능까지 한 번에 관리하세요.
+                    문의사항 : 당근 커뮤니티 - 모임 - 대구 크레스티드게코 집사 모임 - CHAKAN
                 </p>
             </div>
             <!-- 실시간 시스템 안정 상태 표시 -->
@@ -93,11 +93,11 @@
                 
                 <form id="incubatorForm" class="space-y-3.5">
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">수컷 이름 (Sire)</label>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">수컷 이름</label>
                         <input type="text" id="male" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="최대 6-10자" required>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">암컷 이름 (Dam)</label>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">암컷 이름</label>
                         <input type="text" id="female" maxlength="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="최대 6-10자" required>
                     </div>
                     <div>
@@ -114,7 +114,7 @@
                         <input type="number" id="eggCount" min="0" max="2" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" required>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">인큐베이터 설정 온도</label>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">산란 설정 온도</label>
                         <select id="targetTemp" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
                             <option value="27.0">27.0°C (부화 42일 소요)</option>
                             <option value="26.5">26.5°C (부화 47일 소요)</option>
@@ -133,7 +133,7 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">기타 메모 사항 (선택)</label>
-                        <textarea id="memo" rows="2" maxlength="50" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="예: 무정란 의심, 인큐베이터 2층 등"></textarea>
+                        <textarea id="memo" rows="2" maxlength="50" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white transition" placeholder="예: 알이 작음, 무정란 의심, 인큐베이터 2층 등"></textarea>
                     </div>
                     
                     <div class="space-y-2 pt-2">
@@ -163,7 +163,7 @@
                             <select id="filterSelector" onchange="handleFilterChange()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                 <option value="all">전체보기</option>
                                 <option value="incubating">부화 중 (미해칭)</option>
-                                <option value="hatched">해칭 완료</option>
+                                <option value="hatched">산란 완료</option>
                                 <option value="waiting">산란 대기 (미산란)</option>
                             </select>
                         </div>
@@ -194,7 +194,7 @@
                                 <th class="px-2 py-3 text-center">산란일</th>
                                 <th class="px-2 py-3 text-center w-[65px]">알수</th>
                                 <th class="px-2 py-3 text-center w-[65px]">온도</th>
-                                <th class="px-2 py-3 text-center w-[75px]">소요일</th>
+                                <th class="px-2 py-3 text-center w-[90px]">소요일</th>
                                 <th class="px-3 py-3 text-center">해칭 예정일</th>
                                 <th class="px-3 py-3 text-center w-[150px]">D-Day 카운트</th>
                                 <th class="px-3 py-3 text-center w-[120px]">작업</th>
@@ -268,14 +268,18 @@
             
             // 애니메이션 부드러운 전이
             setTimeout(() => {
-                toast.classList.replace('opacity-0', 'opacity-100');
-                toast.classList.replace('translate-y-4', 'translate-y-0');
+                toast.classList.remove('opacity-0');
+                toast.classList.add('opacity-100');
+                toast.classList.remove('translate-y-4');
+                toast.classList.add('translate-y-0');
             }, 50);
 
             // 2.5초 후 자동 숨김
             setTimeout(() => {
-                toast.classList.replace('opacity-100', 'opacity-0');
-                toast.classList.replace('translate-y-0', 'translate-y-4');
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+                toast.classList.remove('translate-y-0');
+                toast.classList.add('translate-y-4');
                 setTimeout(() => toast.classList.add('hidden'), 300);
             }, 2500);
         }
@@ -500,10 +504,9 @@
                 return state === currentFilter;
             });
 
-            // 2단계: 선호 정렬 방식 계산 적용 (수컷 이름순, 암컷 이름순 신규 추가)
+            // 2단계: 선호 정렬 방식 계산 적용 (수컷 이름순, 암컷 이름순)
             processedList.sort((a, b) => {
                 if (currentSort === 'maleSort') {
-                    // 수컷 이름으로 가나다순 정렬 후, 수컷명이 같을 경우 암컷 이름순 -> 산란/교배일 순으로 2차 정렬
                     const compM = (a.male || '').localeCompare(b.male || '');
                     if (compM !== 0) return compM;
                     const compF = (a.female || '').localeCompare(b.female || '');
@@ -511,7 +514,6 @@
                     return (a.layDate || a.mateDate || '').localeCompare(b.layDate || b.mateDate || '');
                 }
                 if (currentSort === 'femaleSort') {
-                    // 암컷 이름으로 가나다순 정렬 후, 암컷명이 같을 경우 수컷 이름순 -> 산란/교배일 순으로 2차 정렬
                     const compF = (a.female || '').localeCompare(b.female || '');
                     if (compF !== 0) return compF;
                     const compM = (a.male || '').localeCompare(b.male || '');
@@ -560,13 +562,35 @@
 
                 let expectedDate = '-';
                 let diffDays = 99999;
-                let requiredDays = '-';
+                let elapsedText = '-'; // '소요일' 텍스트 계산용
 
                 if (layDate && layDate !== '-') {
                     const daysNum = getRequiredDays(targetTemp);
-                    requiredDays = `${daysNum}일`;
                     expectedDate = addDays(layDate, daysNum);
                     diffDays = getDDayValue(expectedDate);
+
+                    // 산란일로부터 오늘까지의 실제 경과 일수 계산
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const lay = parseLocalDate(layDate);
+                    
+                    if (lay) {
+                        lay.setHours(0, 0, 0, 0);
+                        const elapsed = Math.round((today - lay) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) {
+                            // 부화 예정일을 이미 초과(해칭 완료)한 경우, 총 인큐베이팅 완료일 고정
+                            elapsedText = `${daysNum}일 (완료)`;
+                        } else {
+                            if (elapsed === 0) {
+                                elapsedText = `당일`;
+                            } else if (elapsed > 0) {
+                                elapsedText = `${elapsed}일째`;
+                            } else {
+                                elapsedText = `산란 전`;
+                            }
+                        }
+                    }
                 }
 
                 const dDayText = getDDayString(diffDays);
@@ -604,7 +628,7 @@
                             ${targetTemp}°C
                         </span>
                     </td>
-                    <td class="px-2 py-3.5 text-center text-slate-500 font-medium whitespace-nowrap">${requiredDays}</td>
+                    <td class="px-2 py-3.5 text-center text-slate-500 font-medium whitespace-nowrap">${elapsedText}</td>
                     <td class="px-3 py-3.5 text-center text-slate-600 font-medium whitespace-nowrap">${expectedDate}</td>
                     <td class="px-3 py-3.5 text-center whitespace-nowrap">
                         <span class="px-2.5 py-1 text-[10px] font-bold rounded-full border whitespace-nowrap ${
