@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>크레스티드 게코 산란 관리</title>
-    <!-- 가장 호환성이 검증된 Tailwind CSS CDN 사용 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -28,7 +27,6 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen p-3 md:p-6 pb-20">
 
     <div class="max-w-[1600px] mx-auto">
-        <!-- 상단 헤더 -->
         <header class="mb-5 border-b border-slate-200 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -38,7 +36,6 @@
                     문의사항 : 당근 커뮤니티 - 모임 - 대구 크레스티드게코 집사 모임 - CHAKAN
                 </p>
             </div>
-            <!-- 실시간 시스템 및 동기화 상태 표시 -->
             <div class="flex items-center gap-2">
                 <button onclick="openSyncModal()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-sm">
                     🔄 기기간 동기화 / 백업 설정
@@ -49,7 +46,6 @@
             </div>
         </header>
 
-        <!-- 상단 통계 요약 카드 섹션 -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <span class="text-[11px] font-bold text-slate-400">총 알 개수</span>
@@ -81,7 +77,6 @@
             </div>
         </section>
 
-        <!-- 디버그 및 에러 자체 콘솔창 -->
         <div id="errorConsole" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-mono">
             <h3 class="font-bold text-sm mb-1">⚠️ 앱 내 오작동 감지 장치:</h3>
             <p id="errorMessage"></p>
@@ -89,7 +84,6 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <!-- [왼쪽] 데이터 입력 및 수정 폼 (공간 압축형) -->
             <div class="lg:col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-fit">
                 <div class="flex justify-between items-center mb-4">
                     <h2 id="formTitle" class="text-sm font-bold text-slate-900">새 교배/산란 등록</h2>
@@ -152,16 +146,13 @@
                 </form>
             </div>
 
-            <!-- [오른쪽] 대시보드 리스트 -->
             <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                 
-                <!-- 정렬 및 상태 필터링 조작 바 -->
                 <div class="p-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 bg-slate-50/50">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-bold text-slate-900">부화 현황 실시간 모니터</span>
                     </div>
                     
-                    <!-- 정렬 / 필터 셀렉터 컨트롤 -->
                     <div class="flex flex-wrap items-center gap-2">
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">상태 필터:</span>
@@ -189,7 +180,6 @@
                     </div>
                 </div>
                 
-                <!-- 가로 스크롤바 최소화한 컴팩트 테이블 레이아웃 -->
                 <div class="overflow-x-auto prevent-scroll-bar">
                     <table class="w-full text-left border-collapse min-w-[1000px] lg:min-w-0">
                         <thead>
@@ -206,15 +196,13 @@
                             </tr>
                         </thead>
                         <tbody id="eggTableBody" class="divide-y divide-slate-200 text-xs text-slate-700">
-                            <!-- JS를 통해 데이터 리스트가 실시간 렌더링됩니다 -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- [신규] 동기화 및 데이터 백업 관리 모달 -->
     <div id="syncModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
@@ -223,21 +211,20 @@
             </div>
             
             <div class="space-y-6 text-xs text-slate-600">
-                <!-- 옵션 1: 텍스트 간편 백업 -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <h4 class="font-bold text-slate-800 text-sm mb-1">방법 ①. 간편 텍스트 내보내기/가져오기</h4>
-                    <p class="mb-3 text-slate-500">인터넷 가입 없이 현재 데이터를 복사해 카카오톡 등으로 다른 기기에 전달합니다.</p>
+                    <h4 class="font-bold text-slate-800 text-sm mb-1">방법 ①. 수동 백업 및 복구 (JSON 파일)</h4>
+                    <p class="mb-3 text-slate-500">인터넷 연결 없이 기기 간에 데이터(JSON 파일)를 파일로 저장하거나 불러옵니다.</p>
                     <div class="flex gap-2">
-                        <button onclick="exportDataToClipboard()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition cursor-pointer">
-                            📋 데이터 전체 복사하기
+                        <button onclick="exportDataToJson()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition cursor-pointer flex items-center justify-center">
+                            내보내기 (다운로드)
                         </button>
-                        <button onclick="importDataFromInput()" class="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition cursor-pointer">
-                            📥 붙여넣어 가져오기
+                        <button onclick="document.getElementById('import-file').click()" class="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition cursor-pointer flex items-center justify-center">
+                            가져오기 (업로드)
                         </button>
+                        <input type="file" id="import-file" class="hidden" onchange="importDataFromJson(event)" accept=".json">
                     </div>
                 </div>
 
-                <!-- 옵션 2: 실시간 클라우드 동기화 (Firestore) -->
                 <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-200">
                     <h4 class="font-bold text-blue-900 text-sm mb-1">방법 ②. 실시간 클라우드 동기화 (강력 추천)</h4>
                     <p class="mb-3 text-blue-700">나만의 동기화 코드를 정해 실시간 연동을 구성합니다. (동시 입력 및 확인 가능)</p>
@@ -272,7 +259,6 @@
         </div>
     </div>
 
-    <!-- 브라우저 Confirm 창을 대체하는 인앱 모달 -->
     <div id="confirmModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-100 transform transition-all scale-100">
             <div class="flex items-center gap-3 mb-3">
@@ -287,13 +273,11 @@
         </div>
     </div>
 
-    <!-- 작업 알림용 깔끔한 인앱 토스트 팝업 -->
     <div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-950 text-white text-xs px-4 py-3 rounded-xl shadow-2xl z-50 transition-all duration-300 transform translate-y-4 opacity-0 flex items-center gap-2 border border-slate-800">
         <span class="text-emerald-400">✔</span>
         <span id="toastMsg">작업이 처리되었습니다.</span>
     </div>
 
-    <!-- Firebase 모듈 CDN을 활용한 안정적인 클라우드 동기화 스크립트 모듈 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -312,7 +296,6 @@
                 window.auth = getAuth(app);
                 window.db = getFirestore(app);
 
-                // RULE 3 - Auth Before Queries
                 let user;
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     user = (await signInWithCustomToken(window.auth, __initial_auth_token)).user;
@@ -325,20 +308,18 @@
                 document.getElementById('storageStatus').innerText = `동기화 완료 (${window.syncCode})`;
                 document.getElementById('storageStatus').className = "text-xs px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg font-medium";
 
-                // 실시간 동기화 리스너 개시 (RULE 1 & 2 준수: 단일 컬렉션 로드 후 JS 메모리 단에서 필터링)
+                // 실시간 동기화 리스너 개시 
                 const colRef = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'geckoEggs');
                 
                 onSnapshot(colRef, (snapshot) => {
                     const fetched = [];
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        // 해당 동기화 그룹 코드와 같은 개체만 메모리상에서 필터링
                         if (data.syncCode === window.syncCode) {
                             fetched.push({ id: doc.id, ...data });
                         }
                     });
 
-                    // 병합 처리 (클라우드 데이터 우선 동기화)
                     if (fetched.length > 0) {
                         window.eggList = fetched;
                         localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
@@ -348,7 +329,6 @@
                     console.error("Firestore Error: ", error);
                 });
 
-                // 기존 로컬 데이터를 클라우드로 업로드 병합 처리
                 await syncLocalDataToCloud();
                 window.showToast("실시간 클라우드 동기화가 활성화되었습니다.");
 
@@ -398,12 +378,10 @@
 
         // 초기 시작점 연동 분석
         try {
-            // 브라우저 샌드박스 자체 파라미터가 있을 시 자동 적용
             if (typeof __firebase_config !== 'undefined') {
                 const config = JSON.parse(__firebase_config);
                 window.enableFirebaseSync(config, 'default_sync');
             } else {
-                // 사용자가 저장해 둔 설정 로드
                 const savedConfig = localStorage.getItem('gecko_firebase_config');
                 const savedCode = localStorage.getItem('gecko_sync_code');
                 if (savedConfig && savedCode) {
@@ -490,45 +468,55 @@
             document.getElementById('syncModal').classList.add('hidden');
         }
 
-        // 방법 1: 텍스트 간편 백업 복사
-        window.exportDataToClipboard = function() {
+        // ---------------------------------------------------------
+        // [변경됨] 방법 1: JSON 파일로 내보내기 (다운로드)
+        // ---------------------------------------------------------
+        window.exportDataToJson = function() {
             try {
-                const dataStr = btoa(encodeURIComponent(JSON.stringify(window.eggList)));
-                
-                // 클립보드 복사 폴백 호환 처리
-                const tempTextarea = document.createElement('textarea');
-                tempTextarea.value = dataStr;
-                document.body.appendChild(tempTextarea);
-                tempTextarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempTextarea);
-                
-                window.showToast("📋 데이터 코드가 클립보드에 복사되었습니다! 카카오톡 등으로 전송해 다른 기기에 붙여넣으세요.");
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.eggList, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                // 다운로드 시 파일명에 오늘 날짜 자동 포함
+                downloadAnchor.setAttribute("download", `gecko_egg_backup_${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                window.showToast("📥 JSON 백업 파일이 기기에 다운로드되었습니다.");
             } catch (e) {
-                window.showToast("⚠️ 백업 복사에 실패했습니다.");
+                window.showToast("⚠️ 백업 파일 생성에 실패했습니다.");
             }
         }
 
-        // 방법 1: 텍스트 가져오기 적용
-        window.importDataFromInput = function() {
-            const rawCode = prompt("내보내기 했던 데이터 코드를 그대로 이곳에 붙여넣어 주세요.");
-            if (!rawCode) return;
-            try {
-                const decoded = JSON.parse(decodeURIComponent(atob(rawCode)));
-                if (Array.isArray(decoded)) {
-                    if (confirm("기존 스마트폰의 모든 데이터를 덮어쓰고 이 코드로 동기화하시겠습니까?")) {
-                        window.eggList = decoded;
-                        localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
-                        window.renderTable();
-                        window.showToast("📥 데이터를 완전히 연동/복원했습니다!");
-                        window.closeSyncModal();
+        // ---------------------------------------------------------
+        // [변경됨] 방법 1: JSON 파일 가져오기 (업로드 및 복원)
+        // ---------------------------------------------------------
+        window.importDataFromJson = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    // 배열 형태의 올바른 산란 데이터인지 확인
+                    if (Array.isArray(imported)) {
+                        if (confirm("기존의 모든 산란 데이터를 덮어쓰고 이 파일의 데이터로 복원하시겠습니까?")) {
+                            window.eggList = imported;
+                            localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
+                            window.renderTable();
+                            window.showToast("📥 데이터 파일 복구가 완료되었습니다!");
+                            window.closeSyncModal();
+                        }
+                    } else {
+                        window.showToast("⚠️ 올바른 산란 백업 규격 파일이 아닙니다.");
                     }
-                } else {
-                    window.showToast("⚠️ 올바른 데이터 코드가 아닙니다.");
+                } catch(err) {
+                    window.showToast("⚠️ 파일 읽기 오류가 발생했습니다.");
                 }
-            } catch (e) {
-                window.showToast("⚠️ 잘못된 형식의 복사코드입니다.");
-            }
+                // 연속으로 같은 파일을 선택할 수 있도록 input 초기화
+                event.target.value = '';
+            };
+            reader.readAsText(file);
         }
 
         // 방법 2: Firebase 주소 및 동기화 코드 적용 저장
