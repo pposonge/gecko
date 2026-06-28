@@ -11,7 +11,6 @@
             font-family: 'Noto Sans KR', 'Inter', sans-serif; 
             -webkit-font-smoothing: antialiased;
         }
-        /* 테이블 스크롤바 정밀 디자인 */
         .prevent-scroll-bar::-webkit-scrollbar {
             height: 6px;
         }
@@ -37,6 +36,9 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
+                <button onclick="exportForIntegration()" class="text-xs px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-sm">
+                    📥 통합 내보내기
+                </button>
                 <button onclick="openSyncModal()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-sm">
                     🔄 기기간 동기화 / 백업 설정
                 </button>
@@ -45,6 +47,36 @@
                 </div>
             </div>
         </header>
+
+        <script>
+        // ... (기존 모든 자바스크립트 로직 유지) ...
+
+        // [추가된 기능] 통합관리 규격에 맞춘 내보내기 함수
+window.exportForIntegration = function() {
+    const exportData = {
+        geckos: [],
+        eggs: window.appData.eggs || []
+    };
+    
+    try {
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", url);
+        downloadAnchor.setAttribute("download", `integrated_backup_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert("데이터 생성 중 오류가 발생했습니다.");
+    }
+};
+
+        // ... (이하 기존 코드 그대로 유지) ...
+    </script>
 
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -321,8 +353,8 @@
                     });
 
                     if (fetched.length > 0) {
-                        window.eggList = fetched;
-                        localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
+                        window.appData.eggs = fetched;
+                        localStorage.setItem('geckoEggs', JSON.stringify(window.appData.eggs));
                         window.renderTable();
                     }
                 }, (error) => {
@@ -341,7 +373,7 @@
         // 로컬 데이터를 클라우드로 자동 업로드 전송
         async function syncLocalDataToCloud() {
             if (!window.db || !window.syncCode) return;
-            const batchPromises = window.eggList.map(egg => {
+            const batchPromises = window.appData.eggs.map(egg => {
                 const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'geckoEggs', String(egg.id));
                 return setDoc(docRef, {
                     ...egg,
@@ -400,7 +432,7 @@
             { id: 1002, male: '단풍', female: '여름', mateDate: '2026-02-14', layDate: '2026-03-11', eggCount: 2, targetTemp: '24.0', memo: '무정란 의심되었으나 실 핏줄 보임' }
         ];
 
-        window.eggList = [];
+        window.appData = { eggs: [] };
         let editingId = null;
         let currentSort = 'layDate'; // 기본 정렬 조건을 'layDate'(산란일순)로 세팅
         let currentFilter = 'all';
@@ -471,53 +503,35 @@
         // ---------------------------------------------------------
         // [변경됨] 방법 1: JSON 파일로 내보내기 (다운로드)
         // ---------------------------------------------------------
-        window.exportDataToJson = function() {
-            try {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.eggList, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                // 다운로드 시 파일명에 오늘 날짜 자동 포함
-                downloadAnchor.setAttribute("download", `gecko_egg_backup_${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-                window.showToast("📥 JSON 백업 파일이 기기에 다운로드되었습니다.");
-            } catch (e) {
-                window.showToast("⚠️ 백업 파일 생성에 실패했습니다.");
-            }
-        }
+function exportDataToJson() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "gecko_breeding_backup.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+}
 
         // ---------------------------------------------------------
         // [변경됨] 방법 1: JSON 파일 가져오기 (업로드 및 복원)
         // ---------------------------------------------------------
-        window.importDataFromJson = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    // 배열 형태의 올바른 산란 데이터인지 확인
-                    if (Array.isArray(imported)) {
-                        if (confirm("기존의 모든 산란 데이터를 덮어쓰고 이 파일의 데이터로 복원하시겠습니까?")) {
-                            window.eggList = imported;
-                            localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
-                            window.renderTable();
-                            window.showToast("📥 데이터 파일 복구가 완료되었습니다!");
-                            window.closeSyncModal();
-                        }
-                    } else {
-                        window.showToast("⚠️ 올바른 산란 백업 규격 파일이 아닙니다.");
-                    }
-                } catch(err) {
-                    window.showToast("⚠️ 파일 읽기 오류가 발생했습니다.");
-                }
-                // 연속으로 같은 파일을 선택할 수 있도록 input 초기화
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-        }
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            // 통합본 데이터든 산란관리 데이터든 appData를 덮어쓰도록 함
+            window.appData = imported; 
+            saveToStorage();
+            renderTable(); // 화면 새로고침
+            alert('데이터가 성공적으로 통합되었습니다.');
+        } catch(err) { alert('파일 형식이 올바르지 않습니다.'); }
+    };
+    reader.readAsText(file);
+}
 
         // 방법 2: Firebase 주소 및 동기화 코드 적용 저장
         window.saveSyncCode = function() {
@@ -557,27 +571,34 @@
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed)) {
-                        window.eggList = parsed;
+                        window.appData.eggs = parsed;
                     } else {
-                        window.eggList = [...sampleRecords];
+                        window.appData.eggs = [...sampleRecords];
                     }
                 } else {
-                    window.eggList = [...sampleRecords];
+                    window.appData.eggs = [...sampleRecords];
                 }
             } catch (err) {
-                window.eggList = [...sampleRecords];
+                window.appData.eggs = [...sampleRecords];
             }
             window.renderTable();
         }
 
-        function saveToStorage() {
-            try {
-                localStorage.setItem('geckoEggs', JSON.stringify(window.eggList));
-            } catch (err) {
-                console.warn("Storage writing blocked: ", err);
-            }
-        }
+// 기존 saveToStorage 함수 수정
+function saveToStorage() {
+    // 통합본은 전체 appData를 저장하므로, 산란관리 파일도 동일하게 저장
+    localStorage.setItem('gecko_breeding_data', JSON.stringify(window.appData));
+}
 
+// 기존 데이터 로드 부분 수정
+function loadFromStorage() {
+    const saved = localStorage.getItem('gecko_breeding_data');
+    if (saved) {
+        window.appData = JSON.parse(saved);
+    } else {
+        window.appData = { eggs: [] };
+    }
+}
         // 수동 기입 8자리 포맷 자동변환 (YYYYMMDD -> YYYY-MM-DD)
         function formatDateInput(value) {
             let digits = value.replace(/\D/g, ''); // 숫자 이외의 문자 제거
@@ -692,7 +713,7 @@
 
         // 등록 순서가 꼬여도 입력 일자 순서로 올바른 "차수"를 실시간 추적 및 분배하는 계산 엔진
         function getClutchMap() {
-            const sortedList = [...window.eggList].sort((a, b) => {
+            const sortedList = [...window.appData.eggs].sort((a, b) => {
                 const dateA = a.layDate || a.mateDate || '9999-12-31';
                 const dateB = b.layDate || b.mateDate || '9999-12-31';
                 return dateA.localeCompare(dateB);
@@ -734,7 +755,7 @@
             let hatched = 0;
             let waiting = 0;
 
-            window.eggList.forEach(egg => {
+            window.appData.eggs.forEach(egg => {
                 const count = parseInt(egg.eggCount) || 0;
                 total += count;
 
@@ -768,7 +789,7 @@
             updateSummaryStats();
 
             // 1단계: 조건 필터링 수행
-            let processedList = window.eggList.filter(egg => {
+            let processedList = window.appData.eggs.filter(egg => {
                 if (!egg) return false;
                 
                 // 상태값 진단
@@ -943,7 +964,7 @@
         }
 
         window.editRecord = function(id) {
-            const record = window.eggList.find(item => item.id === id);
+            const record = window.appData.eggs.find(item => item.id === id);
             if (!record) return;
 
             editingId = id;
@@ -989,10 +1010,10 @@
 
             let finalEgg;
             if (editingId) {
-                const targetIndex = window.eggList.findIndex(item => item.id === editingId);
+                const targetIndex = window.appData.eggs.findIndex(item => item.id === editingId);
                 if (targetIndex !== -1) {
-                    window.eggList[targetIndex] = { ...window.eggList[targetIndex], ...recordData };
-                    finalEgg = window.eggList[targetIndex];
+                    window.appData.eggs[targetIndex] = { ...window.appData.eggs[targetIndex], ...recordData };
+                    finalEgg = window.appData.eggs[targetIndex];
                 }
                 window.resetForm();
                 window.showToast("기록 수정이 완료되었습니다.");
@@ -1001,7 +1022,7 @@
                     id: Date.now(),
                     ...recordData
                 };
-                window.eggList.push(newRecord);
+                window.appData.eggs.push(newRecord);
                 finalEgg = newRecord;
                 document.getElementById('incubatorForm').reset();
                 document.getElementById('eggCount').value = 0;
@@ -1023,7 +1044,7 @@
                 true
             );
             if (confirmed) {
-                window.eggList = window.eggList.filter(item => item.id !== id);
+                window.appData.eggs = window.appData.eggs.filter(item => item.id !== id);
                 saveToStorage();
                 if (window.deleteEggFromCloud) {
                     window.deleteEggFromCloud(id);
@@ -1044,11 +1065,11 @@
             if (confirmed) {
                 // 클라우드가 켜져있다면 클라우드 개체들 전원 삭제
                 if (window.db && window.syncCode) {
-                    for (let egg of window.eggList) {
+                    for (let egg of window.appData.eggs) {
                         window.deleteEggFromCloud(egg.id);
                     }
                 }
-                window.eggList = [];
+                window.appData.eggs = [];
                 saveToStorage();
                 window.resetForm();
                 window.renderTable();
